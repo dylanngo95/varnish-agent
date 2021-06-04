@@ -1,0 +1,63 @@
+version: '2'
+
+services:
+  varnish:
+    image: "varnish-img"  
+    ports:
+     - "8081:8081"
+    environment:
+     - SINGLE=varnish
+     - VARNISH_OPTS=-n /var/lib/varnish -T :6082
+    volumes:
+     - workdir:/var/lib/varnish
+    networks: 
+      - app-network
+  hitch:
+    image: "varnish-img"
+    ports:
+     - "1443:443"
+    environment:
+     - SINGLE=hitch
+     - HITCH_OPTS=
+    networks: 
+      - app-network
+  agent:
+    image: "varnish-img"
+    ports:
+     - "1085:6085"
+    environment:
+     - SINGLE=agent
+     - AGENT_OPTS=-n /var/lib/varnish -T varnish:6082
+     - STAT_OPTS=-n /var/lib/varnish
+    volumes:
+     - workdir:/var/lib/varnish
+    networks: 
+        - app-network
+  web:
+      image: nginx:latest
+      ports:
+          - "8080:80"
+      volumes:
+          - ./www:/www
+          - ./site.conf:/etc/nginx/conf.d/site.conf
+      links:
+          - php
+      networks: 
+          - app-network
+  php:
+      image: php:7.4-fpm
+      volumes:
+          - ./www:/www
+      networks: 
+          - app-network
+
+volumes:
+  workdir:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+
+networks:
+  app-network:
+    driver: bridge
